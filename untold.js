@@ -48,7 +48,7 @@ function play(message, is_new, vc = 0) {
             .then(connection => {
                 connections[id].stream = connection;
                 connections[id].stream.play(radio_url, {encoderArgs: bassboostargs, bitrate: '192000' })
-                connections[id].stream.dispatcher.setVolumeLogarithmic(1.5);
+                connections[id].stream.dispatcher.setVolumeLogarithmic(1);
                 connections[id].stream.dispatcher.on("end", end => {
                     play(message, 0, vc);
                 });
@@ -114,7 +114,7 @@ function volume(message, args) {
     }
     if (connections[id]) {
         if (!args[0]) {
-            return message.channel.send("Current volume: `" + connections[id].stream.dispatcher.volumeLogarithmic + "%`");
+            return message.channel.send("Current volume: `" + connections[id].stream.dispatcher.volumeLogarithmic*100 + "%`");
         }
         if (parseInt(args[0]) < 0 || parseInt(args[0]) > 100) {
             return message.channel.send("You need to specify a value between 0 and 100");
