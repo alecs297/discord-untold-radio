@@ -4,12 +4,12 @@ const config = require('./config.json');
 const request = require('request');
 
 const radio_url = "http://live-untold.distinct.ro:8000/untold.ogg";
-const metadata_url = "https://live.distinct.ro/untold/now_playing.php?the_stream=http%3A%2F%2Flive-untold.distinct.ro%3A8000%2Funtold.ogg&callback=__jp13&_=1588273142176"
+const metadata_url = "https://live.distinct.ro/untold/now_playing.php?the_stream=http%3A%2F%2Flive-untold.distinct.ro%3A8000%2Funtold.ogg&callback=__jp13&_=1588273142176";
 
 var np = "the Untold Radio";
 var connections = {};
 
-var bassboostargs = ['-af', `equalizer=f=40:width_type=h:width=50:g=10`]
+var bassboostargs = ['-af', `equalizer=f=40:width_type=h:width=50:g=10`];
 
 function isCommand(message) {
     if (message.content === "<@!" + client.user.id + ">") {
@@ -68,7 +68,7 @@ function play(message, is_new, vc = 0) {
 function pause(message) {
     let id = message.guild.id;
     if (!message.member.voice.channelID) {
-        return message.channel.send("You are not connected to any voice chat.")
+        return message.channel.send("You are not connected to any voice chat.");
     }
     if (connections[id]) {
         if (!connections[id].stream.dispatcher.paused) {
@@ -79,17 +79,17 @@ function pause(message) {
                 message.channel.send("Couldn't pause the stream.");
             }
         } else {
-            message.channel.send("Stream already paused.")
+            message.channel.send("Stream already paused.");
         }
     } else {
-        message.channel.send("Nothing to pause.")
+        message.channel.send("Nothing to pause.");
     }
 }
 
 function resume(message) {
     let id = message.guild.id;
     if (!message.member.voice.channelID) {
-        return message.channel.send("You are not connected to any voice chat.")
+        return message.channel.send("You are not connected to any voice chat.");
     }
     if (connections[id]) {
         if (connections[id].stream.dispatcher.paused) {
@@ -100,18 +100,37 @@ function resume(message) {
                 message.channel.send("Couldn't resume the stream.");
             }
         } else {
-            message.channel.send("Stream already running.")
+            message.channel.send("Stream already running.");
         }
     } else {
-        message.channel.send("Nothing to resume.")
+        message.channel.send("Nothing to resume.");
     }
 }
 
+function volume(message, args) {
+    let id = message.guild.id;
+    if (!message.member.voice.channelID) {
+        return message.channel.send("You are not connected to any voice chat.");
+    }
+    if (!args[0] || parseInt(args[0]) < 0 || parseInt(args[0]) > 100) {
+        return message.channel.send("You need to specify a value between 0 and 100");
+    }
+    if (connections[id]) {
+        try {
+            connections[id].stream.dispatcher.setVolumeLogarithmic(parseInt(args[0]) / 100);
+            message.channel.send("Volume set to `" + parseInt(args[0]) + "%");
+        } catch {
+            message.channel.send("Couldn't change the volume");
+        }
+    } else {
+        message.channel.send("Nothing is playing");
+    }
+}
 function leave(message, is_requested) {
     let id = message.guild.id;
     let vc = message.guild.me.voice;
     if (!message.member.voice.channelID) {
-        return message.channel.send("You are not connected to any voice chat.")
+        return message.channel.send("You are not connected to any voice chat.");
     }
     if (vc.channelID) {
         if (connections[id]) {
@@ -136,7 +155,7 @@ client.on("ready", async => {
             if (!err) {
                 np = body.replace(/&amp/g, "&");
                 if (body.toLowerCase().includes("connection")) {
-                    np = "Untold's Radio";
+                    np = "the Untold Radio";
                 }
             }
         });
@@ -154,7 +173,7 @@ client.on('message', async message => {
         } else if (command === "leave" || command === "stop") {
             leave(message, 1);
         } else if (command === "volume") {
-
+            volume (message, args);
         } else if (command === "pause") {
             pause(message);
         } else if (command === "resume") {
@@ -166,7 +185,13 @@ client.on('message', async message => {
                 message.channel.send("Now Playing: " + np);
             }
         } else if (command === "help") {
-
+            let embed = new Discord.MessageEmbed();
+            embed.setTitle("Untold Radio");
+            embed.setDescription("Created by `Fouiny#0001`, available on GitHub.\nAllows the streaming of the Untold radio in your server at 196kbps. Highly dependent of, well, the Untold Radio. Let's they don't change their gateway too often.");
+            embed.addField("Commands", "```Self explanatory commands:\n-join / play\n-leave\n-pause\n-resume\n-np\n-volume```");
+            embed.setFooter("Prefix: " + config.prefix + " || Bot's tag.");
+            embed.setThumbnail(client.user.avatarURL);
+            message.channel.send(embed);
         }
     }
 })
