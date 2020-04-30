@@ -129,7 +129,7 @@ function volume(message, args) {
         message.channel.send("Nothing is playing");
     }
 }
-function leave(message, is_requested) { // Fir now we always want the message message for the leave fonction but eh, maybe you don't.
+function leave(message, is_requested) { // For now we always want the message message for the leave fonction but eh, maybe you don't.
     let id = message.guild.id;
     let vc = message.guild.me.voice;
     if (!message.member.voice.channelID) {
