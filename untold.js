@@ -6,8 +6,10 @@ const request = require('request');
 const radio_url = "http://live-untold.distinct.ro:8000/untold.ogg";
 const metadata_url = "https://live.distinct.ro/untold/now_playing.php?the_stream=http%3A%2F%2Flive-untold.distinct.ro%3A8000%2Funtold.ogg&callback=__jp13&_=1588273142176"
 
-var np = "Untold's Radio";
+var np = "the Untold Radio";
 var connections = {};
+
+var bassboostargs = ['-af', `equalizer=f=40:width_type=h:width=50:g=10`]
 
 function isCommand(message) {
     if (message.content === "<@!" + client.user.id + ">") {
@@ -26,8 +28,59 @@ function parseCommand(message) {
         r.args = message.content.slice(tag.length);
         r.prefix = tag;
     }
-    r.command = args.shift().toLowerCase();
+    r.command = r.args.shift().toLowerCase();
     return r;
+}
+
+function play(message, is_new) {
+    let id = message.guild.id;
+    let vc = message.member.voice;
+    if (connections[id] && message.guild.me.voice) {
+        return message.channel.send("Radio already playing.");
+    }
+    if (vc.channelID) {
+        connections[id] = {};
+        if (vc.channel.joinable) {
+            if (is_new) {
+                message.channel.send("Launching the Radio.");
+            }
+            vc.channel.join()
+            .then(connection => {
+                connections[id].stream = connection;
+                connections[id].stream.play(radio_url, {encoderArgs: bassboostargs, bitrate: '192000' })
+                connections[id].stream.dispatcher.setVolumeLogarithmic(1.5);
+                connections[id].stream.dispatcher.on("end", end => {
+                    vc.channel.leave();
+                });
+            });
+        } else {
+            if (is_new) {
+                message.channel.send("Can't connect to your channel");
+            }
+        }
+    }
+}
+
+function leave(message, is_requested) {
+    let id = message.guild.id;
+    let vc = message.guild.me.voice;
+    if (!message.member.voice.channelID) {
+        return message.channel.send("You are not connected to any voice chat.")
+    }
+    if (vc.channelID) {
+        if (connections[id]) {
+            connections[id].stream.dispatcher.destroy();
+        }
+        vc.channel.leave();
+        if (is_requested) {
+            message.channel.send("Leaving.");
+        }
+    } else {
+        if (is_requested) {
+            message.channel.send("Not connected to any channel.");
+        }
+    }
+    connections[id] = 0;
 }
 
 client.on("ready", async => {
@@ -35,7 +88,10 @@ client.on("ready", async => {
     var interval = setInterval (async function () {
         await request(metadata_url, (err, res, body) => {
             if (!err) {
-                np = body;
+                np = body.replace(/&amp/g, "&");
+                if (body.toLowerCase().includes("connection")) {
+                    np = "Untold's Radio";
+                }
             }
         });
         client.user.setActivity(np, {type: 'LISTENING'});
@@ -47,20 +103,24 @@ client.on('message', async message => {
         var r = parseCommand(message);
         var command = r.command;
         var args = r.args;
-        if (command === "join") {
-
-        } else if (command === "leave") {
-
+        if (command === "join" || command === "play") {
+            play(message, 1);
+        } else if (command === "leave" || command === "stop") {
+            leave(message, 1);
         } else if (command === "volume") {
 
         } else if (command === "pause") {
 
-        } else if (command === "play" || command === "resume") {
-
+        } else if (command === "resume") {
+            play(message, 0);
         } else if (command === "np") {
-
+            if (np.toLowerCase().includes("connection")) {
+                message.channel.send("Untold's server doesn't want to share this information with us.")
+            } else {
+                message.channel.send("Now Playing: " + np);
+            }
         } else if (command === "help") {
-            
+
         }
     }
 })
