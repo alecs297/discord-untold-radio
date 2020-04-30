@@ -20,22 +20,22 @@ function isCommand(message) {
 
 function parseCommand(message) {
     var r = {};
-    var tag = message.content.startsWith("<@!" + client.user.id + ">")
+    var tag = "<@!" + client.user.id + ">";
     if (message.content.startsWith(config.prefix)) {
         r.args = message.content.slice(config.prefix.length).trim().split(/ +/g);
         r.prefix = config.prefix;
     } else {
-        r.args = message.content.slice(tag.length);
+        r.args = message.content.slice(tag.length + 1).trim().split(/ +/g);
         r.prefix = tag;
     }
     r.command = r.args.shift().toLowerCase();
     return r;
 }
 
-function play(message, is_new) {
+function play(message, is_new, vc = 0) {
     let id = message.guild.id;
-    let vc = message.member.voice;
-    if (connections[id] && message.guild.me.voice) {
+    if(!vc) vc = message.member.voice;
+    if (connections[id] && message.guild.me.voice && is_new) {
         return message.channel.send("Radio already playing.");
     }
     if (vc.channelID) {
@@ -50,14 +50,60 @@ function play(message, is_new) {
                 connections[id].stream.play(radio_url, {encoderArgs: bassboostargs, bitrate: '192000' })
                 connections[id].stream.dispatcher.setVolumeLogarithmic(1.5);
                 connections[id].stream.dispatcher.on("end", end => {
-                    vc.channel.leave();
+                    play(message, 0, vc);
                 });
             });
         } else {
             if (is_new) {
                 message.channel.send("Can't connect to your channel");
+                connections[id] = 0;
             }
         }
+    } else {
+        message.channel.send("You are not connected to any channel.");
+        connections[id] = 0;
+    }
+}
+
+function pause(message) {
+    let id = message.guild.id;
+    if (!message.member.voice.channelID) {
+        return message.channel.send("You are not connected to any voice chat.")
+    }
+    if (connections[id]) {
+        if (!connections[id].stream.dispatcher.paused) {
+            try {
+                connections[id].stream.dispatcher.pause();
+                message.channel.send("Stream paused!");
+            } catch {
+                message.channel.send("Couldn't pause the stream.");
+            }
+        } else {
+            message.channel.send("Stream already paused.")
+        }
+    } else {
+        message.channel.send("Nothing to pause.")
+    }
+}
+
+function resume(message) {
+    let id = message.guild.id;
+    if (!message.member.voice.channelID) {
+        return message.channel.send("You are not connected to any voice chat.")
+    }
+    if (connections[id]) {
+        if (connections[id].stream.dispatcher.paused) {
+            try {
+                connections[id].stream.dispatcher.resume();
+                message.channel.send("Stream resumed!");
+            } catch {
+                message.channel.send("Couldn't resume the stream.");
+            }
+        } else {
+            message.channel.send("Stream already running.")
+        }
+    } else {
+        message.channel.send("Nothing to resume.")
     }
 }
 
@@ -110,9 +156,9 @@ client.on('message', async message => {
         } else if (command === "volume") {
 
         } else if (command === "pause") {
-
+            pause(message);
         } else if (command === "resume") {
-            play(message, 0);
+            resume(message);
         } else if (command === "np") {
             if (np.toLowerCase().includes("connection")) {
                 message.channel.send("Untold's server doesn't want to share this information with us.")
