@@ -112,10 +112,13 @@ function volume(message, args) {
     if (!message.member.voice.channelID) {
         return message.channel.send("You are not connected to any voice chat.");
     }
-    if (!args[0] || parseInt(args[0]) < 0 || parseInt(args[0]) > 100) {
-        return message.channel.send("You need to specify a value between 0 and 100");
-    }
     if (connections[id]) {
+        if (!args[0]) {
+            return message.channel.send("Current volume: `" + connections[id].stream.dispatcher.volumeLogarithmic + "%`");
+        }
+        if (parseInt(args[0]) < 0 || parseInt(args[0]) > 100) {
+            return message.channel.send("You need to specify a value between 0 and 100");
+        }
         try {
             connections[id].stream.dispatcher.setVolumeLogarithmic(parseInt(args[0]) / 100);
             message.channel.send("Volume set to `" + parseInt(args[0]) + "%");
