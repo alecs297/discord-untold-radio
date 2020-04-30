@@ -116,12 +116,12 @@ function volume(message, args) {
         if (!args[0]) {
             return message.channel.send("Current volume: `" + connections[id].stream.dispatcher.volumeLogarithmic*100 + "%`");
         }
-        if (parseInt(args[0]) < 0 || parseInt(args[0]) > 100) {
-            return message.channel.send("You need to specify a value between 0 and 100");
+        if (parseInt(args[0]) < 0 || parseInt(args[0]) > 200) {
+            return message.channel.send("You need to specify a value between 0 and 200");
         }
         try {
             connections[id].stream.dispatcher.setVolumeLogarithmic(parseInt(args[0]) / 100);
-            message.channel.send("Volume set to `" + parseInt(args[0]) + "%");
+            message.channel.send("Volume set to `" + parseInt(args[0]) + "%`");
         } catch {
             message.channel.send("Couldn't change the volume");
         }
@@ -129,7 +129,7 @@ function volume(message, args) {
         message.channel.send("Nothing is playing");
     }
 }
-function leave(message, is_requested) {
+function leave(message, is_requested) { // Fir now we always want the message message for the leave fonction but eh, maybe you don't.
     let id = message.guild.id;
     let vc = message.guild.me.voice;
     if (!message.member.voice.channelID) {
@@ -190,9 +190,9 @@ client.on('message', async message => {
         } else if (command === "help") {
             let embed = new Discord.MessageEmbed();
             embed.setTitle("Untold Radio");
-            embed.setDescription("Created by `Fouiny#0001`, available on GitHub.\nAllows the streaming of the Untold radio in your server at 196kbps. Highly dependent of, well, the Untold Radio. Let's they don't change their gateway too often.");
+            embed.setDescription("Created by `Fouiny#0001`, available on GitHub.\nAllows the streaming of the Untold radio in your server at 196kbps. Highly dependent of, well, the Untold Radio. Let's hope they don't change their gateway too often.");
             embed.addField("Commands", "```Self explanatory commands:\n-join / play\n-leave\n-pause\n-resume\n-np\n-volume```");
-            embed.setFooter("Prefix: " + config.prefix + " || Bot's tag.");
+            embed.setFooter("Prefix: " + config.prefix + " || bot's tag.");
             embed.setThumbnail(client.user.avatarURL);
             message.channel.send(embed);
         }
